@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+research/
+.agent/
+.agents/
+.impeccable/
+.env
+.env.*
+dist/
+*.apk
+*.xapk
+*.deb
