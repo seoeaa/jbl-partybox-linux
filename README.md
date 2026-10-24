@@ -6,14 +6,42 @@
 
 Не связан с JBL/Harman и не является их официальным продуктом. JBL и PartyBox — товарные знаки их владельцев. Иконка создана отдельно, без официального логотипа.
 
-## Установка
+## Скачать готовую сборку
+
+Открой [последний релиз](https://github.com/seoeaa/jbl-partybox-linux/releases/latest) и скачай один из файлов:
+
+- **`.deb`** — готовый пакет для Ubuntu 24.04+ с установкой системных зависимостей.
+- **`-linux.tar.gz`** — архив программы с установщиком в домашний каталог, без клонирования Git.
+- **`SHA256SUMS`** — контрольные суммы обоих файлов.
+
+### Установка пакета Ubuntu
+
+Из папки загрузки, подставив скачанное имя файла:
+
+```bash
+sudo apt install ./partybox710_0.1.0_all.deb
+```
+
+После установки открой **PartyBox 710** из меню приложений или командой `partybox710`.
+
+### Архив без системной установки
+
+```bash
+tar -xzf partybox710-0.1.0-linux.tar.gz
+cd partybox710-0.1.0
+./install.sh
+```
+
+Для этого варианта GTK4/libadwaita должны быть установлены отдельно. Архив не содержит встроенный Python или GTK.
+
+## Установка из исходников
 
 Проверено на **Ubuntu 24.04**, Python 3.12, GTK 4.14, libadwaita 1.5 и PartyBox 710 с прошивкой **1.40.0**. Нужны Linux Bluetooth, BlueZ, PipeWire/WirePlumber и `pactl`/`busctl`.
 
 Зависимости Ubuntu/Debian (если их ещё нет):
 
 ```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libadwaita-1-0 bluez pipewire-pulse wireplumber libspa-0.2-bluetooth
+sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libadwaita-1-0 bluez pulseaudio-utils pipewire-pulse wireplumber libspa-0.2-bluetooth
 ```
 
 Установка без root, pip и виртуального окружения:
@@ -94,13 +122,23 @@ Runtime: стандартная библиотека Python и системны�
 - GTK-интерфейс на760×760 и640×600, read-only проверка кнопки аудиостатуса; защита от вызова записи при программном обновлении Gtk.Switch.
 - Синтаксис/компиляция Python и shell-проверки. Новые unit/integration/E2E-тестовые файлы не создавались.
 
-Другие модели, прошивки, Linux-дистрибутивы и комбинации Bluetooth-адаптеров не проверены. Протокол может измениться после обновления firmware. EQ, TWS, karaoke/DJ, firmware update, deb/AppImage и Flatpak не реализованы. Физическую слышимость звука подтверждает пользователь; программная проверка показывает маршрутизацию аудиопотоков.
+Другие модели, прошивки, Linux-дистрибутивы и комбинации Bluetooth-адаптеров не проверены. Протокол может измениться после обновления firmware. EQ, TWS, karaoke/DJ, firmware update, AppImage и Flatpak не реализованы. Физическую слышимость звука подтверждает пользователь; программная проверка показывает маршрутизацию аудиопотоков.
 
 ## Исследование и благодарности
 
 - [PartyPair: описание протокола с проверкой на двух710](https://github.com/louim-lbs/PartyPair/blob/main/docs/PROTOCOL.md).
 
 Генерация иконки: Google Nano Banana2.1; оригинальное небрендированное изображение, локальная подготовка прозрачности и размеров. См. `assets/provenance.json`.
+
+## Сборка релиза
+
+```bash
+./packaging/build-release.sh
+```
+
+Версия читается из `VERSION`; файлы появляются в `dist/`. Можно задать версию и каталог явно: `./packaging/build-release.sh 0.1.0 dist`.
+
+GitHub Actions собирает, проверяет и прикладывает файлы к релизу при публикации тега `vN.N.N`, совпадающего с `VERSION`. Сборка не устанавливает программу на компьютер разработчика и не обращается к колонке.
 
 ## Лицензия
 

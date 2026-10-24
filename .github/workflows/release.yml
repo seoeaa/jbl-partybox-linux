@@ -1,0 +1,83 @@
+name: Build and publish release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$(cat VERSION)" == "$version" ]]
+          printf 'RELEASE_VERSION=%s\n' "$version" >> "$GITHUB_ENV"
+
+      - name: Install build and desktop validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y dpkg-dev desktop-file-utils python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
+
+      - name: Check source and build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n run.sh install.sh packaging/build-release.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in Path('partybox').glob('*.py'):
+              compile(path.read_text(), str(path), 'exec')
+          PY
+          ./packaging/build-release.sh "$RELEASE_VERSION" dist
+          (cd dist && sha256sum -c SHA256SUMS)
+          dpkg-deb --info "dist/partybox710_${RELEASE_VERSION}_all.deb"
+          dpkg-deb --contents "dist/partybox710_${RELEASE_VERSION}_all.deb"
+          desktop-file-validate packaging/partybox710.desktop
+
+      - name: Validate extracted package and user installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage=$(mktemp -d)
+          dpkg-deb -x "dist/partybox710_${RELEASE_VERSION}_all.deb" "$stage/deb"
+          (cd "$stage/deb/usr/lib/jbl-partybox-linux" && /usr/bin/python3 -B -m partybox --help)
+          desktop-file-validate "$stage/deb/usr/share/applications/org.partybox.Linux710.desktop"
+          tar -xzf "dist/partybox710-${RELEASE_VERSION}-linux.tar.gz" -C "$stage"
+          HOME="$stage/home space" XDG_DATA_HOME="$stage/data space" "$stage/partybox710-$RELEASE_VERSION/install.sh"
+          HOME="$stage/home space" "$stage/home space/.local/bin/partybox710" --help
+          desktop-file-validate "$stage/data space/applications/partybox710.desktop"
+
+      - name: Publish downloadable release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=("dist/partybox710_${RELEASE_VERSION}_all.deb" "dist/partybox710-${RELEASE_VERSION}-linux.tar.gz" "dist/SHA256SUMS")
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --repo "$GITHUB_REPOSITORY" \
+              --title "PartyBox 710 Linux v$RELEASE_VERSION" \
+              --notes 'Готовый .deb для Ubuntu 24.04+ и архив с пользовательским установщиком. SHA256SUMS содержит контрольные суммы файлов. Инструкция установки — в README.'
+          fi

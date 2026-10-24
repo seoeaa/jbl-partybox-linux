@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=PartyBox710
+Comment=Управление JBL PartyBox 710 по Bluetooth LE и вывод звука Linux
+Exec=partybox710
+Icon=org.partybox.Linux710
+Terminal=false
+Categories=AudioVideo;Audio;
+StartupNotify=true
+StartupWMClass=org.partybox.Linux710
